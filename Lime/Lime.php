@@ -292,6 +292,32 @@ class Lime {
     }
 
     /**
+     * 路由分组
+     *
+     * @param  string $pattern
+     * @param  mixed  $handler
+     * @param  mixed  $filter
+     */
+    public function group($pattern, $handler, $filter = null)
+    {
+        $args = func_get_args();
+
+        $filters = array_slice($args, 2);
+
+        if ($handler instanceof \Closure) {
+            $handler = $handler->bindTo($this);
+        }
+
+        $this->container->get('router')->pushGroup($pattern);
+
+        if (is_callable($handler)) {
+            $this->container->get('router')->mount($handler, $filters);
+        }
+
+        $this->container->get('router')->popGroup();
+    }
+
+    /**
      * 添加 GET 路由
      *
      * @see    map()
@@ -393,43 +419,44 @@ class Lime {
         $request  = $this->container->get('request');
         $response = $this->container->get('response');
 
-        $route = $this->middleware->make('router', function($method, $uri) use ($router) {
-            return $router->handle($method, $uri);
-        })->call($request->method(), $request->uri());
+        try {
+            $route = $this->middleware->make('router', function($method, $uri) use ($router) {
+                return $router->handle($method, $uri);
+            })->call($request->method(), $request->uri());
+            
+            if ($route) {
+                $request->setParams($route->getParams());
 
-        if ($route) {
-            $request->setParams($route->getParams());
+                // middleware dispatch
+                $middleware = $this->middleware->make('dispatch', function() use ($route) {
+                    return $route->dispatch();
+                });
 
-            // middleware dispatch
-            $middleware = $this->middleware->make('dispatch', function() use ($route) {
-                return $route->dispatch();
-            });
-
-            try {
                 $res = $middleware->call();
-            } catch (\Lime\Exception\NotFoundException $e) {
-                if (! $this->middleware->has('notFoundHandler')) {
-                    throw $e;
-                }
 
-                $this->cleanBuffer();
-                $response->setStatus(404);
-                $res = $this->middleware->make('notFoundHandler')->call($e);
-            } catch (\Exception $e) {
-                if (! $this->middleware->has('errorHandler')) {
-                    throw $e;
-                }
-
-                $this->cleanBuffer();
-                $response->setStatus(500);
-                $res = $this->middleware->make('errorHandler')->call($e);
+            } else {
+                throw new \Lime\Exception\NotFoundException("Page Not Found");
+            }
+        } catch (\Lime\Exception\NotFoundException $e) {
+            if (! $this->middleware->has('notFoundHandler')) {
+                throw $e;
             }
 
-            if(! is_null($res)) {
-                $response->setBody($res);
+            $this->cleanBuffer();
+            $response->setStatus(404);
+            $res = $this->middleware->make('notFoundHandler')->call($e);
+        } catch (\Exception $e) {
+            if (! $this->middleware->has('errorHandler')) {
+                throw $e;
             }
-        } else {
-            throw new \Lime\Exception\NotFoundException("Page Not Found");
+
+            $this->cleanBuffer();
+            $response->setStatus(500);
+            $res = $this->middleware->make('errorHandler')->call($e);
+        }
+
+        if(! is_null($res)) {
+            $response->setBody($res);
         }
 
         if ($echo) {
