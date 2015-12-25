@@ -129,6 +129,19 @@ if (! function_exists('url_base')) {
     }
 }
 
+if (! function_exists('url_for')) {
+    /**
+     * 生成 URL (根据路由名称)
+     *
+     * @param  string  $name
+     * @param  array   $params
+     * @return string
+     */
+    function url_for($name, $params = []) {
+        return app('url')->urlFor($name, $params);
+    }
+}
+
 if (! function_exists('dump')) {
     /**
      * 打印数组
