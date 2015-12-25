@@ -251,6 +251,16 @@ class Route
     }
 
     /**
+     * 获取路由表达式
+     *
+     * @return string
+     */
+    public function getPattern()
+    {
+        return $this->pattern;
+    }
+
+    /**
      * 添加参数
      *
      * @param  string $key
