@@ -33,11 +33,20 @@ class Url
     protected $request;
 
     /**
+     * 路由对象
+     *
+     * @var \Lime\Router
+     */
+    protected $router;
+
+    /**
      * 构造函数
      */
     public function __construct()
     {
         $this->request = new \Lime\Request();
+        $this->router  = \Lime\Lime::app('router');
+
         $this->detectSite();
         $this->detectBase();
     }
@@ -78,6 +87,18 @@ class Url
         }
 
         return $url;
+    }
+
+    /**
+     * 生成 URL (根据路由名称)
+     *
+     * @param  string  $name
+     * @param  array   $params
+     * @return string
+     */
+    public function urlFor($name, $params = [])
+    {
+        return $this->base() . $this->router->urlFor($name, $params);
     }
 
     /**
