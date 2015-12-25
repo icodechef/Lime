@@ -127,7 +127,8 @@ class Model implements \ArrayAccess, \Iterator, \Countable
         if (strpos($key, '@') === 0) {
             /* 方法访问数据 */
             $key = substr($key, 1);
-            $getter = sprintf('get%s', ucfirst($key));
+            $getter = str_replace(' ', '', ucwords(str_replace('_', ' ', $key)));
+            $getter = sprintf('get%s', $getter);
 
             if (method_exists($this, $getter)) {
                 $value = isset($this->row[$key]) ? $this->row[$key] : null;
